@@ -38,7 +38,7 @@ var users = []User{
 
 func main() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/users", makeHttpHandler(handleGetUsers))
+	mux.HandleFunc("/users", makeHandlerFunc(handleGetUsers))
 
 	loggedMux := NewLogger(mux)
 
@@ -49,7 +49,7 @@ func handleGetUsers(w http.ResponseWriter, r *http.Request) error {
 	return writeJSON(w, users, http.StatusOK)
 }
 
-func makeHttpHandler(h handler) http.HandlerFunc {
+func makeHandlerFunc(h handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := h(w, r)
 		if err != nil {
