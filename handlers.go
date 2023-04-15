@@ -53,35 +53,33 @@ func (uh *UsersHandler) handleGetUsersById(w http.ResponseWriter, r *http.Reques
 	writeJSON(w, user, http.StatusOK)
 }
 
-func NewLoginHandler(s Store) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var c Credentials
-		defer r.Body.Close()
+func (uh *UsersHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
+	var c Credentials
+	defer r.Body.Close()
 
-		if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
-			writeJSON(w, fmt.Sprintf("invalid request body: %s", err.Error()), http.StatusBadRequest)
-			return
-		}
-
-		user, err := s.GetUserByName(c.Username)
-
-		if err != nil {
-			writeJSON(w, "invalid credentials", http.StatusUnauthorized)
-			return
-		}
-
-		if user.Password != c.Password {
-			writeJSON(w, "invalid credentials", http.StatusUnauthorized)
-			return
-		}
-
-		token, err := NewJWT(user.Name)
-		if err != nil {
-			writeJSON(w, "authentication failed", http.StatusUnauthorized)
-			return
-		}
-		writeJSON(w, token, http.StatusOK)
+	if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
+		writeJSON(w, fmt.Sprintf("invalid request body: %s", err.Error()), http.StatusBadRequest)
+		return
 	}
+
+	user, err := uh.store.GetUserByName(c.Username)
+
+	if err != nil {
+		writeJSON(w, "invalid credentials", http.StatusUnauthorized)
+		return
+	}
+
+	if user.Password != c.Password {
+		writeJSON(w, "invalid credentials", http.StatusUnauthorized)
+		return
+	}
+
+	token, err := NewJWT(user.Name)
+	if err != nil {
+		writeJSON(w, "authentication failed", http.StatusUnauthorized)
+		return
+	}
+	writeJSON(w, token, http.StatusOK)
 }
 
 func handleGetHealthCheck(w http.ResponseWriter, r *http.Request) {

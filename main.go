@@ -22,7 +22,7 @@ func main() {
 	authMiddleware := NewAuthMiddleware(store)
 	usersHandler := NewUsersHandler(store)
 
-	router.HandlerFunc("POST", "/auth/login", NewLoginHandler(store))
+	router.HandlerFunc("POST", "/auth/login", usersHandler.handleLogin)
 	router.HandlerFunc("GET", "/auth/me", AdaptHandlerFunc(handleGetAuthenticatedUser, authMiddleware))
 	router.HandlerFunc("GET", "/users", AdaptHandlerFunc(usersHandler.handleGetUsers, authMiddleware))
 	router.HandlerFunc("GET", "/users/:id", AdaptHandlerFunc(usersHandler.handleGetUsersById, authMiddleware))
