@@ -1,16 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
 )
-
-type UsersHandler struct {
-	store Store
-}
 
 func NewUsersHandler(s Store) *UsersHandler {
 	return &UsersHandler{
@@ -56,13 +53,35 @@ func (uh *UsersHandler) handleGetUsersById(w http.ResponseWriter, r *http.Reques
 	writeJSON(w, user, http.StatusOK)
 }
 
-func handleGetToken(w http.ResponseWriter, r *http.Request) {
-	token, err := NewJWT("Olly")
-	if err != nil {
-		writeJSON(w, fmt.Errorf("authentication failed"), http.StatusUnauthorized)
-		return
+func NewLoginHandler(s Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var c Credentials
+		defer r.Body.Close()
+
+		if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
+			writeJSON(w, fmt.Sprintf("invalid request body: %s", err.Error()), http.StatusBadRequest)
+			return
+		}
+
+		user, err := s.GetUserByName(c.Username)
+
+		if err != nil {
+			writeJSON(w, "invalid credentials", http.StatusUnauthorized)
+			return
+		}
+
+		if user.Password != c.Password {
+			writeJSON(w, "invalid credentials", http.StatusUnauthorized)
+			return
+		}
+
+		token, err := NewJWT(user.Name)
+		if err != nil {
+			writeJSON(w, "authentication failed", http.StatusUnauthorized)
+			return
+		}
+		writeJSON(w, token, http.StatusOK)
 	}
-	writeJSON(w, token, http.StatusOK)
 }
 
 func handleGetHealthCheck(w http.ResponseWriter, r *http.Request) {

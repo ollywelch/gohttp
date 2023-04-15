@@ -14,37 +14,18 @@ const (
 	currentUserContextKey = contextKey("auth.currentUser")
 )
 
-type User struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
-}
-
-type httpError struct {
-	Status  int `json:"status"`
-	Content any `json:"content"`
-}
-
-type Middleware func(http.Handler) http.Handler
-type MiddlewareFunc func(http.HandlerFunc) http.HandlerFunc
-
-type contextKey string
-
-func (c contextKey) String() string {
-	return "context key " + string(c)
-}
-
 func main() {
 	router := httprouter.New()
 
 	store := NewInMemoryStore()
 
-	ensureAuth := NewAuthMiddleware(store)
-
+	authMiddleware := NewAuthMiddleware(store)
 	usersHandler := NewUsersHandler(store)
-	router.HandlerFunc("POST", "/auth/login", handleGetToken)
-	router.HandlerFunc("GET", "/users", AdaptHandlerFunc(usersHandler.handleGetUsers, ensureAuth))
-	router.HandlerFunc("GET", "/users/:id", AdaptHandlerFunc(usersHandler.handleGetUsersById, ensureAuth))
-	router.HandlerFunc("GET", "/auth/me", AdaptHandlerFunc(handleGetAuthenticatedUser, ensureAuth))
+
+	router.HandlerFunc("POST", "/auth/login", NewLoginHandler(store))
+	router.HandlerFunc("GET", "/auth/me", AdaptHandlerFunc(handleGetAuthenticatedUser, authMiddleware))
+	router.HandlerFunc("GET", "/users", AdaptHandlerFunc(usersHandler.handleGetUsers, authMiddleware))
+	router.HandlerFunc("GET", "/users/:id", AdaptHandlerFunc(usersHandler.handleGetUsersById, authMiddleware))
 	router.HandlerFunc("GET", "/healthz", handleGetHealthCheck)
 
 	wrappedRouter := AdaptHandler(router, LogRequests)

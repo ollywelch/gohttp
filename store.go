@@ -2,22 +2,13 @@ package main
 
 import "fmt"
 
-type Store interface {
-	GetUsers() ([]User, error)
-	GetUserById(int) (*User, error)
-	GetUserByName(string) (*User, error)
-}
-
-type InMemoryStore struct {
-	users []User
-}
-
 func NewInMemoryStore() *InMemoryStore {
 	return &InMemoryStore{
 		users: []User{
 			{
-				Id:   1,
-				Name: "Olly",
+				Id:       1,
+				Name:     "Olly",
+				Password: "password",
 			},
 		},
 	}
