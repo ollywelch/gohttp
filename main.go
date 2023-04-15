@@ -1,12 +1,9 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
@@ -36,24 +33,16 @@ func (c contextKey) String() string {
 	return "context key " + string(c)
 }
 
-var users = []User{
-	{
-		Id:   1,
-		Name: "Olly",
-	},
-	{
-		Id:   2,
-		Name: "Jeff",
-	},
-}
-
 func main() {
 	router := httprouter.New()
 
-	ensureAuth := EnsureAuthentication()
+	store := NewInMemoryStore()
 
-	router.HandlerFunc("GET", "/users", AdaptHandlerFunc(handleGetUsers, ensureAuth))
-	router.HandlerFunc("GET", "/users/:id", AdaptHandlerFunc(handleGetUsersById, ensureAuth))
+	ensureAuth := NewAuthMiddleware(store)
+
+	usersHandler := NewUsersHandler(store)
+	router.HandlerFunc("GET", "/users", AdaptHandlerFunc(usersHandler.handleGetUsers, ensureAuth))
+	router.HandlerFunc("GET", "/users/:id", AdaptHandlerFunc(usersHandler.handleGetUsersById, ensureAuth))
 	router.HandlerFunc("GET", "/auth/me", AdaptHandlerFunc(handleGetCurrentUser, ensureAuth))
 
 	wrappedRouter := AdaptHandler(router, LogRequests)
@@ -69,11 +58,11 @@ func AdaptHandler(h http.Handler, middlewares ...Middleware) http.Handler {
 	return h
 }
 
-func AdaptHandlerFunc(h http.HandlerFunc, middlewares ...MiddlewareFunc) http.HandlerFunc {
-	for _, m := range middlewares {
-		h = m(h)
+func AdaptHandlerFunc(hf http.HandlerFunc, mfs ...MiddlewareFunc) http.HandlerFunc {
+	for _, mf := range mfs {
+		hf = mf(hf)
 	}
-	return h
+	return hf
 }
 
 func LogRequests(h http.Handler) http.Handler {
@@ -82,63 +71,6 @@ func LogRequests(h http.Handler) http.Handler {
 		h.ServeHTTP(w, r)
 		log.Printf("%s %s %v", r.Method, r.URL.Path, time.Since(start))
 	})
-}
-
-func EnsureAuthentication() MiddlewareFunc {
-	return func(hf http.HandlerFunc) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			currentUser, err := authenticateRequest(r)
-			if err != nil {
-				http.Error(w, "not authenticated", http.StatusForbidden)
-				return
-			}
-
-			ctx := context.WithValue(r.Context(), currentUserContextKey, currentUser)
-
-			rWithCtx := r.WithContext(ctx)
-
-			hf.ServeHTTP(w, rWithCtx)
-		}
-	}
-}
-
-func authenticateRequest(r *http.Request) (*User, error) {
-	//TODO: Some auth
-	return &users[0], nil
-}
-
-func handleGetCurrentUser(w http.ResponseWriter, r *http.Request) {
-	user, ok := r.Context().Value(currentUserContextKey).(*User)
-	if !ok || user == nil {
-		writeJSON(w, "error getting current user", http.StatusInternalServerError)
-		return
-	}
-	writeJSON(w, user, http.StatusOK)
-}
-
-func handleGetUsers(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, users, http.StatusOK)
-}
-
-func handleGetUsersById(w http.ResponseWriter, r *http.Request) {
-	params := httprouter.ParamsFromContext(r.Context())
-	idStr := params.ByName("id")
-
-	id, err := strconv.Atoi(idStr)
-
-	if err != nil {
-		writeJSON(w, fmt.Sprintf("error parsing id: %s", err.Error()), http.StatusBadRequest)
-		return
-	}
-
-	for _, user := range users {
-		if user.Id == id {
-			writeJSON(w, user, http.StatusOK)
-			return
-		}
-	}
-
-	writeJSON(w, fmt.Sprintf("user with id=%d not found", id), http.StatusNotFound)
 }
 
 func writeJSON(w http.ResponseWriter, v any, status int) {
