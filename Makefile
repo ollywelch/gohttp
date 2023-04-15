@@ -3,3 +3,6 @@ build:
 
 run: build
 	@./bin/gohttp
+
+image:
+	docker build -t gohttp .
