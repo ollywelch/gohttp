@@ -18,7 +18,7 @@ func NewUsersHandler(s Store) *UsersHandler {
 	}
 }
 
-func handleGetCurrentUser(w http.ResponseWriter, r *http.Request) {
+func handleGetAuthenticatedUser(w http.ResponseWriter, r *http.Request) {
 	user, ok := r.Context().Value(currentUserContextKey).(*User)
 	if !ok || user == nil {
 		writeJSON(w, "error getting current user", http.StatusInternalServerError)
@@ -54,6 +54,15 @@ func (uh *UsersHandler) handleGetUsersById(w http.ResponseWriter, r *http.Reques
 	}
 
 	writeJSON(w, user, http.StatusOK)
+}
+
+func handleGetToken(w http.ResponseWriter, r *http.Request) {
+	token, err := NewJWT("Olly")
+	if err != nil {
+		writeJSON(w, fmt.Errorf("authentication failed"), http.StatusUnauthorized)
+		return
+	}
+	writeJSON(w, token, http.StatusOK)
 }
 
 func handleGetHealthCheck(w http.ResponseWriter, r *http.Request) {
