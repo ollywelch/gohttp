@@ -44,6 +44,7 @@ func main() {
 	router.HandlerFunc("GET", "/users", AdaptHandlerFunc(usersHandler.handleGetUsers, ensureAuth))
 	router.HandlerFunc("GET", "/users/:id", AdaptHandlerFunc(usersHandler.handleGetUsersById, ensureAuth))
 	router.HandlerFunc("GET", "/auth/me", AdaptHandlerFunc(handleGetCurrentUser, ensureAuth))
+	router.HandlerFunc("GET", "/healthz", handleGetHealthCheck)
 
 	wrappedRouter := AdaptHandler(router, LogRequests)
 

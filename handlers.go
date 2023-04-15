@@ -55,3 +55,7 @@ func (uh *UsersHandler) handleGetUsersById(w http.ResponseWriter, r *http.Reques
 
 	writeJSON(w, user, http.StatusOK)
 }
+
+func handleGetHealthCheck(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, "healthy", http.StatusOK)
+}
