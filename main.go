@@ -2,8 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
@@ -13,6 +16,11 @@ const (
 	port                  = ":3000"
 	currentUserContextKey = contextKey("auth.currentUser")
 )
+
+func init() {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
+}
 
 func main() {
 	router := httprouter.New()
@@ -30,7 +38,7 @@ func main() {
 
 	wrappedRouter := AdaptHandler(router, LogRequests)
 
-	log.Println("http server listening at", port)
+	slog.Info(fmt.Sprintf("http server listening at %s", port))
 	log.Fatal(http.ListenAndServe(port, wrappedRouter))
 }
 
@@ -52,7 +60,7 @@ func LogRequests(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		h.ServeHTTP(w, r)
-		log.Printf("%s %s %v", r.Method, r.URL.Path, time.Since(start))
+		slog.Info(fmt.Sprintf("%s %s %v", r.Method, r.URL.Path, time.Since(start)))
 	})
 }
 

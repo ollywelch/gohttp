@@ -48,6 +48,7 @@ func (uh *UsersHandler) handleGetUsersById(w http.ResponseWriter, r *http.Reques
 
 	if err != nil {
 		writeJSON(w, fmt.Sprintf("user with id=%d not found", id), http.StatusNotFound)
+		return
 	}
 
 	writeJSON(w, user, http.StatusOK)
